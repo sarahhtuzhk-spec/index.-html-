@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>منصة التعليم</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1b2333;--mut:#6b7488;--pri:#2f6fed;--ok:#1f9d63;--bad:#d64545;--bd:#e3e6ee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141d;--card:#1a2030;--tx:#eef1f7;--mut:#98a2b8;--bd:#2a3248;--pri:#5b8cff}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:Tahoma,"Segoe UI",Arial,sans-serif;line-height:1.7}
+.w{max-width:820px;margin:auto;padding:14px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+h1{font-size:20px;margin:6px 0 12px}h2{font-size:16px;margin:0 0 8px}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 3px}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:9px;background:var(--bg);color:var(--tx);font:inherit}
+button{background:var(--pri);color:#fff;border:0;border-radius:9px;padding:9px 14px;font:inherit;cursor:pointer;margin:6px 0 0 6px}
+button.g{background:transparent;color:var(--pri);border:1px solid var(--pri)}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px}.tabs button{margin:0;white-space:nowrap}
+.tabs button:not(.on){background:var(--card);color:var(--tx);border:1px solid var(--bd)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:560px){.row{grid-template-columns:1fr}}
+.it{border-top:1px solid var(--bd);padding:8px 0}.mut{color:var(--mut);font-size:13px}
+.opt{display:block;width:100%;text-align:right;background:var(--bg);color:var(--tx);border:1px solid var(--bd)}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.hide{display:none}
+</style></head><body><div class="w" id="app"></div>
+<script>
+const SYS=["المنهج المصري","البكالوريا المصرية","الفرنساوي","الأمريكي","IB","IGCSE"];
+const STAGES={"KG":["KG1","KG2"],"ابتدائي":["الأول","الثاني","الثالث","الرابع","الخامس","السادس"],"إعدادي":["الأول","الثاني","الثالث"],"ثانوي":["الأول","الثاني","الثالث"],"جامعي":["الفرقة 1","الفرقة 2","الفرقة 3","الفرقة 4","الفرقة 5","الفرقة 6"]};
+const COLL=["طب","صيدلة","طب أسنان","هندسة","علوم","حاسبات ومعلومات","تجارة","حقوق","آداب","تربية","زراعة","إعلام","سياحة وفنادق","علاج طبيعي","تمريض","فنون جميلة","أخرى"];
+const LANGS=["عربي","English","Français","Deutsch"];
+const SUBJ={"KG":["حروف","أرقام","ألوان وأشكال"],"ابتدائي":["عربي","رياضيات","علوم","إنجليزي","دراسات"],"إعدادي":["عربي","رياضيات","علوم","إنجليزي","دراسات"],"ثانوي":["عربي","رياضيات","فيزياء","كيمياء","أحياء","إنجليزي","تاريخ","جغرافيا"],"جامعي":[]};
+let S;try{S=JSON.parse(localStorage.getItem("edu1")||"null")}catch(e){S=null}
+if(!S)S={p:null,notes:[],log:[],ph:""};
+function save(){try{localStorage.setItem("edu1",JSON.stringify(S))}catch(e){}}
+const $=id=>document.getElementById(id);
+const opts=a=>a.map(x=>`<option>${x}</option>`).join("");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let tab="notes",quiz=null;
+
+function setup(){
+ $("app").innerHTML=`<h1>📚 أهلاً بيك! نجهّز ملفك الدراسي</h1><div class="c">
+ <label>اسم الطالب</label><input id="n">
+ <div class="row"><div><label>المرحلة</label><select id="st">${opts(Object.keys(STAGES))}</select></div>
+ <div><label>الصف / الفرقة</label><select id="gr"></select></div>
+ <div><label>نظام التعليم</label><select id="sy">${opts(SYS)}</select></div>
+ <div><label>لغة الدراسة</label><select id="lg">${opts(LANGS)}</select></div></div>
+ <div id="uni" class="hide"><div class="row"><div><label>نوع الجامعة</label><select id="ut">${opts(["حكومية","خاصة","أهلية"])}</select></div>
+ <div><label>الكلية</label><select id="cl">${opts(COLL)}</select></div></div>
+ <label>اسم الجامعة / الكلية (اختياري)</label><input id="cn"></div>
+ <label>رقم واتساب ولي الأمر (بكود الدولة، مثال 2010xxxxxxx)</label><input id="ph" inputmode="tel">
+ <button id="go">ابدأ</button></div>`;
+ const up=()=>{$("gr").innerHTML=opts(STAGES[$("st").value]);$("uni").classList.toggle("hide",$("st").value!="جامعي")};
+ $("st").onchange=up;up();
+ $("go").onclick=()=>{if(!$("n").value.trim())return alert("اكتب الاسم");
+  S.p={name:$("n").value.trim(),stage:$("st").value,grade:$("gr").value,sys:$("sy").value,lang:$("lg").value,ut:$("ut").value,coll:$("cl").value,cn:$("cn").value};
+  S.ph=$("ph").value.replace(/\D/g,"");save();main()}
+}
+function subjects(){const p=S.p;let s=[...(SUBJ[p.stage]||[])];if(p.stage=="جامعي")s=[p.coll];S.notes.forEach(n=>{if(!s.includes(n.subj))s.push(n.subj)});return s}
+function main(){
+ const p=S.p;
+ $("app").innerHTML=`<h1>👋 ${esc(p.name)}</h1><div class="mut" style="margin-bottom:10px">${p.stage} — ${p.grade} • ${p.sys} • ${p.lang}${p.stage=="جامعي"?" • "+p.ut+" • "+p.coll:""}</div>
+ <div class="tabs">${[["notes","📥 إضافة محتوى"],["lib","🗂️ مكتبتي"],["search","🔎 بحث"],["quiz","📝 اختبار"],["rep","📊 التقييم"],["set","⚙️ الإعدادات"]].map(t=>`<button class="${tab==t[0]?"on":""}" data-t="${t[0]}">${t[1]}</button>`).join("")}</div><div id="v"></div>`;
+ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;main()});
+ ({notes:vNotes,lib:vLib,search:vSearch,quiz:vQuiz,rep:vRep,set:vSet})[tab]();
+}
+function vNotes(){
+ $("v").innerHTML=`<div class="c"><h2>أضف مادة علمية من مصدرك</h2>
+ <div class="row"><div><label>المادة</label><input id="su" list="sl"><datalist id="sl">${opts(subjects())}</datalist></div>
+ <div><label>المصدر (كتاب / ملزمة / محاضرة)</label><input id="so"></div>
+ <div><label>السنة الدراسية</label><input id="yr" value="${S.p.grade}"></div>
+ <div><label>من صفحة – إلى صفحة</label><input id="pg" placeholder="12-15"></div></div>
+ <label>النص (انسخ الشرح هنا)</label><textarea id="tx" rows="6"></textarea>
+ <button id="ad">حفظ</button><span id="m" class="ok"></span></div>`;
+ $("ad").onclick=()=>{const n={id:Date.now(),subj:$("su").value.trim(),src:$("so").value.trim(),yr:$("yr").value,pg:$("pg").value.trim(),tx:$("tx").value.trim()};
+  if(!n.subj||!n.tx)return alert("المادة والنص مطلوبين");S.notes.push(n);save();$("m").textContent=" ✔ اتحفظ";$("tx").value=""}
+}
+function vLib(){
+ const ss=subjects();$("v").innerHTML=`<div class="c"><h2>المواد</h2>${ss.map(s=>{const k=S.notes.filter(n=>n.subj==s);return `<div class="it"><b>${esc(s)}</b> <span class="mut">(${k.length})</span>${k.map(n=>`<div class="mut">• ${esc(n.src||"—")} | ${esc(n.yr)} | ص ${esc(n.pg||"—")} <a href="#" data-d="${n.id}">حذف</a></div>`).join("")}</div>`}).join("")||"لا يوجد"}</div>`;
+ document.querySelectorAll("[data-d]").forEach(a=>a.onclick=e=>{e.preventDefault();S.notes=S.notes.filter(n=>n.id!=a.dataset.d);save();vLib()});
+}
+function vSearch(){
+ $("v").innerHTML=`<div class="c"><h2>ابحث في كل اللي ذاكرته</h2><input id="q" placeholder="اكتب كلمة أو معلومة"><button id="sq">بحث</button><div id="r"></div></div>`;
+ $("sq").onclick=()=>{const q=$("q").value.trim().toLowerCase();if(!q)return;
+  const r=S.notes.filter(n=>n.tx.toLowerCase().includes(q));
+  $("r").innerHTML=r.map(n=>{const i=n.tx.toLowerCase().indexOf(q);const sn=n.tx.slice(Math.max(0,i-80),i+160);return `<div class="it"><b>${esc(n.subj)}</b> — ${esc(n.src)} (${esc(n.yr)}) <b>صفحة ${esc(n.pg||"—")}</b><div class="mut">…${esc(sn)}…</div></div>`}).join("")||"<div class='mut'>مفيش نتائج</div>"}
+}
+function mk(){
+ const pool=[];S.notes.forEach(n=>n.tx.split(/[.!؟\n]+/).forEach(s=>{s=s.trim();const w=s.split(/\s+/).filter(x=>x.length>3);if(w.length>=5)pool.push({s,n,w})}));
+ if(pool.length<4)return null;
+ const all=[...new Set(pool.flatMap(x=>x.w))];
+ return pool.sort(()=>Math.random()-.5).slice(0,5).map(x=>{const a=x.w.sort((p,q)=>q.length-p.length)[0];
+  const ch=[a,...all.filter(z=>z!=a).sort(()=>Math.random()-.5).slice(0,3)].sort(()=>Math.random()-.5);
+  return {q:x.s.replace(a,"_____"),a,ch,n:x.n}})
+}
+function vQuiz(){
+ quiz=mk();if(!quiz)return $("v").innerHTML=`<div class="c">أضف محتوى أكتر (على الأقل 4 جمل) عشان نعمل اختبار.</div>`;
+ let i=0,sc=0;const box=$("v");
+ const show=()=>{if(i>=quiz.length){S.log.push({d:Date.now(),sc,t:quiz.length});save();box.innerHTML=`<div class="c"><h2>النتيجة: ${sc}/${quiz.length}</h2><button id="rr">اختبار جديد</button></div>`;$("rr").onclick=vQuiz;return}
+  const q=quiz[i];box.innerHTML=`<div class="c"><div class="mut">سؤال ${i+1}/${quiz.length} — ${esc(q.n.subj)}</div><h2>${esc(q.q)}</h2>${q.ch.map(c=>`<button class="opt" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div>`;
+  box.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const ok=b.dataset.c==q.a;if(ok)sc++;else S.log.push({d:Date.now(),w:1,subj:q.n.subj,src:q.n.src,pg:q.n.pg});
+   box.insertAdjacentHTML("beforeend",`<div class="c ${ok?"ok":"bad"}">${ok?"✔ صح":"✘ غلط — الإجابة: "+esc(q.a)+" (راجع "+esc(q.n.src)+" ص "+esc(q.n.pg||"—")+")"}<br><button id="nx">التالي</button></div>`);
+   box.querySelectorAll(".opt").forEach(x=>x.disabled=true);$("nx").onclick=()=>{i++;show()}})};
+ show();
+}
+function weak(days){const t=Date.now()-days*864e5,m={};S.log.filter(l=>l.w&&l.d>=t).forEach(l=>{const k=l.subj+"|"+l.src+"|"+l.pg;m[k]=(m[k]||0)+1});return Object.entries(m).map(([k,c])=>{const[a,b,d]=k.split("|");return{subj:a,src:b,pg:d,c}}).sort((x,y)=>y.c-x.c)}
+function report(days){const t=Date.now()-days*864e5,L=S.log.filter(l=>l.t&&l.d>=t),w=weak(days);
+ let s=`تقرير ${days==7?"أسبوعي":"شهري"} — ${S.p.name}\nاختبارات: ${L.length}`;if(L.length)s+=` | المتوسط: ${Math.round(L.reduce((a,l)=>a+l.sc/l.t,0)/L.length*100)}%`;
+ s+="\nنقاط تحتاج مراجعة:\n"+(w.map(x=>`- ${x.subj}: ${x.src} ص ${x.pg||"—"} (${x.c} أخطاء)`).join("\n")||"- لا يوجد");return s}
+function vRep(){
+ $("v").innerHTML=`<div class="c"><h2>التقييم الدوري</h2><select id="pd"><option value="7">أسبوعي</option><option value="30">شهري</option></select><textarea id="rt" rows="8" readonly></textarea>
+ <button id="wa">إرسال لولي الأمر واتساب</button><button class="g" id="cp">نسخ لـ Google Sheets</button><div id="m" class="mut"></div></div>`;
+ const u=()=>$("rt").value=report(+$("pd").value);$("pd").onchange=u;u();
+ $("wa").onclick=()=>{if(!S.ph)return alert("حط رقم ولي الأمر في الإعدادات");window.open("https://wa.me/"+S.ph+"?text="+encodeURIComponent($("rt").value),"_blank")};
+ $("cp").onclick=async()=>{const rows=[["المادة","المصدر","الصفحات","عدد الأخطاء"],...weak(+$("pd").value).map(x=>[x.subj,x.src,x.pg,x.c])].map(r=>r.join("\t")).join("\n");
+  try{await navigator.clipboard.writeText(rows);$("m").textContent="اتنسخ — الصقه في Google Sheets (Ctrl+V)"}catch(e){$("rt").value=rows;$("rt").select();$("m").textContent="انسخ النص يدوياً"}}
+}
+function vSet(){
+ $("v").innerHTML=`<div class="c"><label>واتساب ولي الأمر</label><input id="ph" value="${S.ph}"><button id="sv">حفظ</button><button class="g" id="rs">تغيير بيانات الطالب</button></div>`;
+ $("sv").onclick=()=>{S.ph=$("ph").value.replace(/\D/g,"");save();alert("تم")};
+ $("rs").onclick=()=>{S.p=null;save();setup()};
+}
+S.p?main():setup();
+</script></body></html>
